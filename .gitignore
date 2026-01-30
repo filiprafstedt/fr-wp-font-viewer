@@ -1,0 +1,3 @@
+storage/*
+!.gitkeep
+.DS_Store
