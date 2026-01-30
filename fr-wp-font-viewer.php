@@ -7,6 +7,8 @@
  * Author: Filip Rafstedt
  */
 
+define('FR_WPFV_VERSION', '0.1.0');
+
 if (!defined('ABSPATH')) exit;
 
 define('WPFV_PATH', plugin_dir_path(__FILE__));
