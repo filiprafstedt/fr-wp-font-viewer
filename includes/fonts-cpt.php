@@ -5,15 +5,35 @@ if (!defined('ABSPATH')) exit;
 // Add Font Library admin menu
 // -------------------------------------------
 add_action('admin_menu', function() {
+
+    // Top-level menu
     add_menu_page(
-        'Font Library',           // Page title
-        'Font Library',           // Menu title
-        'manage_options',         // Capability
-        'fr_font_library',        // Menu slug
-        'fr_font_library_page',   // Callback
-        'dashicons-editor-textcolor', // Icon
-        25                        // Position
+        'Foundry',
+        'Foundry',
+        'manage_options',
+        'fr_font_library',          // ✅ KEEP THIS SLUG
+        'fr_font_library_page',
+        'dashicons-editor-textcolor',
+        25
     );
+
+    // Font Collections submenu
+    add_submenu_page(
+        'fr_font_library',          // ✅ MUST MATCH EXACTLY
+        'Font Collections',
+        'Font Collections',
+        'manage_options',
+        'edit.php?post_type=wpfv_collection'
+    );
+
+});
+
+add_action('admin_menu', function () {
+    global $submenu;
+
+    if (isset($submenu['fr_font_library'][0])) {
+        $submenu['fr_font_library'][0][0] = 'Fonts Library';
+    }
 });
 
 // -------------------------------------------

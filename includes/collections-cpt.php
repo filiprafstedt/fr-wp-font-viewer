@@ -13,7 +13,7 @@ add_action('init', function () {
         ],
         'public' => false,
         'show_ui' => true,
-        'menu_icon' => 'dashicons-portfolio',
+        'show_in_menu' => false,   // ✅ BOOLEAN, not string
         'supports' => ['title'],
     ]);
 });
