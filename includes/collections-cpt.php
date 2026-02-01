@@ -58,7 +58,7 @@ function fr_collection_defaults_box($post) {
     $defaults = get_post_meta($post->ID, '_fr_collection_defaults', true);
     if (!is_array($defaults)) {
         $defaults = [
-            'text' => 'Hamburgefontsiv',
+            'text' => 'The quick brown fox jumps over the lazy dog & €1.234.567,89',
             'font_size' => '48px',
             'line_height' => '1.1',
             'alignment' => 'left',

@@ -54,16 +54,56 @@ function wpfv_render_viewer($atts) {
          data-ajax-url="<?php echo esc_url($ajax_url); ?>">
 
         <div class="fr-controls">
-            <select class="fr-font-select">
-                <?php foreach ($fonts as $file): ?>
-                    <option value="<?php echo esc_attr($file); ?>"
-                        <?php selected($file, $default_font); ?>>
-                        <?php echo esc_html(
-                            trim(str_replace(['-', '.woff2'], [' ', ''], $file))
-                        ); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+
+            <!-- Font selector -->
+            <div class="fr-control fr-font">
+                <select class="fr-font-select">
+                    <?php foreach ($fonts as $file): ?>
+                        <option value="<?php echo esc_attr($file); ?>"
+                            <?php selected($file, $default_font); ?>>
+                            <?php echo esc_html(
+                                trim(str_replace(['-', '.woff2'], [' ', ''], $file))
+                            ); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Alignment -->
+            <div class="fr-control fr-alignment">
+                <button type="button" data-align="left">L</button>
+                <button type="button" data-align="center">C</button>
+                <button type="button" data-align="right">R</button>
+            </div>
+
+            <!-- Font size -->
+            <div class="fr-control fr-size">
+                <input
+                    type="range"
+                    class="fr-font-size"
+                    min="8"
+                    max="200"
+                    value="<?php echo intval($defaults['font_size']); ?>"
+                >
+            </div>
+
+            <!-- Line height -->
+            <div class="fr-control fr-lineheight">
+                <input
+                    type="range"
+                    class="fr-line-height"
+                    min="0.6"
+                    max="2"
+                    step="0.05"
+                    value="<?php echo esc_attr($defaults['line_height']); ?>"
+                >
+            </div>
+
+            <!-- OpenType features (placeholder) -->
+            <div class="fr-control fr-ot">
+                <button type="button" disabled>OT</button>
+            </div>
+
         </div>
 
         <p class="fr-font-stage"
@@ -163,6 +203,45 @@ add_action('wp_footer', function () {
     });
 
 })();
+
+// Alignment av Paragraph
+document.addEventListener('click', function (e) {
+
+    if (!e.target.matches('.fr-alignment button')) return;
+
+    const viewer = e.target.closest('.fr-font-viewer');
+    const stage  = viewer.querySelector('.fr-font-stage');
+    const align  = e.target.dataset.align;
+
+    stage.style.textAlign = align;
+
+    // active state
+    viewer.querySelectorAll('.fr-alignment button').forEach(btn => {
+        btn.classList.toggle('is-active', btn === e.target);
+    });
+});
+
+// Font-size Slider
+document.addEventListener('input', function (e) {
+
+    if (!e.target.matches('.fr-font-size')) return;
+
+    const viewer = e.target.closest('.fr-font-viewer');
+    const stage  = viewer.querySelector('.fr-font-stage');
+
+    stage.style.fontSize = e.target.value + 'px';
+});
+
+// Line-height Slider
+document.addEventListener('input', function (e) {
+
+    if (!e.target.matches('.fr-line-height')) return;
+
+    const viewer = e.target.closest('.fr-font-viewer');
+    const stage  = viewer.querySelector('.fr-font-stage');
+
+    stage.style.lineHeight = e.target.value;
+});
 </script>
 <?php
 });
