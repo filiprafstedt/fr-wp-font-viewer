@@ -24,6 +24,10 @@ function wpfv_render_viewer($atts) {
     if (!$collection) return '';
 
     $fonts = get_post_meta($collection->ID, '_fr_collection_fonts', true);
+    $ot_features = get_post_meta($collection->ID, '_fr_collection_ot_features', true);
+    if (!is_array($ot_features)) {
+        $ot_features = [];
+    }
     if (!is_array($fonts) || empty($fonts)) {
         return '<p>No fonts in this collection.</p>';
     }
@@ -119,6 +123,7 @@ function wpfv_render_viewer($atts) {
                font-size:<?php echo esc_attr($defaults['font_size']); ?>;
                line-height:<?php echo esc_attr($defaults['line_height']); ?>;
                text-align:<?php echo esc_attr($defaults['alignment']); ?>;
+               font-feature-settings: <?php echo esc_attr(fr_ot_features_to_css($ot_features)); ?>;
            ">
             <?php echo esc_html($defaults['text']); ?>
         </p>
@@ -127,6 +132,15 @@ function wpfv_render_viewer($atts) {
 
     <?php
     return ob_get_clean();
+}
+
+function fr_ot_features_to_css($features) {
+    if (empty($features)) return '';
+    $out = [];
+    foreach ($features as $tag) {
+        $out[] = '"' . esc_attr($tag) . '" 1';
+    }
+    return implode(', ', $out);
 }
 
 /**
