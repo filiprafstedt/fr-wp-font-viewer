@@ -101,7 +101,13 @@ function wpfv_render_viewer($atts) {
 
             <!-- OpenType features (placeholder) -->
             <div class="fr-control fr-ot">
-                <button type="button" disabled>OT</button>
+                <button type="button" class="fr-ot-toggle">
+                    OpenType
+                </button>
+
+                <div class="fr-ot-panel" hidden>
+                    <!-- JS will populate this -->
+                </div>
             </div>
 
         </div>
@@ -204,7 +210,7 @@ add_action('wp_footer', function () {
 
 })();
 
-// Alignment av Paragraph
+// Alignment of Paragraph
 document.addEventListener('click', function (e) {
 
     if (!e.target.matches('.fr-alignment button')) return;
@@ -241,6 +247,50 @@ document.addEventListener('input', function (e) {
     const stage  = viewer.querySelector('.fr-font-stage');
 
     stage.style.lineHeight = e.target.value;
+});
+
+// Populating the OT-menu
+const otFeatures = [
+  { tag: "liga", label: "Standard Ligatures" },
+  { tag: "dlig", label: "Discretionary Ligatures" },
+  { tag: "clig", label: "Contextual Ligatures" },
+  { tag: "kern", label: "Kerning" },
+  { tag: "ss01", label: "Stylistic Set 1" },
+  { tag: "ss02", label: "Stylistic Set 2" },
+  { tag: "salt", label: "Stylistic Alternates" },
+  { tag: "onum", label: "Oldstyle Numerals" },
+  { tag: "lnum", label: "Lining Numerals" }
+];
+
+const otPanel = document.querySelector('.fr-ot-panel');
+const stage = document.querySelector('.fr-font-stage');
+
+otFeatures.forEach(f => {
+  const label = document.createElement('label');
+  label.innerHTML = `
+    <input type="checkbox" data-feature="${f.tag}">
+    ${f.label}
+  `;
+  otPanel.appendChild(label);
+});
+
+// Toggle the OT-menu
+document.querySelector('.fr-ot-toggle')
+  .addEventListener('click', () => {
+    otPanel.hidden = !otPanel.hidden;
+    });
+
+  // Apply OT features to the paragraph
+  otPanel.addEventListener('change', () => {
+  const active = [];
+
+  otPanel.querySelectorAll('input:checked')
+    .forEach(cb => {
+      active.push(`"${cb.dataset.feature}" 1`);
+    });
+
+  stage.style.fontFeatureSettings =
+    active.length ? active.join(', ') : 'normal';
 });
 </script>
 <?php
