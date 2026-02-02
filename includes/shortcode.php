@@ -24,10 +24,6 @@ function wpfv_render_viewer($atts) {
     if (!$collection) return '';
 
     $fonts = get_post_meta($collection->ID, '_fr_collection_fonts', true);
-    $ot_features = get_post_meta($collection->ID, '_fr_collection_ot_features', true);
-    if (!is_array($ot_features)) {
-        $ot_features = [];
-    }
     if (!is_array($fonts) || empty($fonts)) {
         return '<p>No fonts in this collection.</p>';
     }
@@ -37,12 +33,17 @@ function wpfv_render_viewer($atts) {
         $default_font = $fonts[0];
     }
 
+    $ot_features = get_post_meta($collection->ID, '_fr_collection_ot_features', true);
+    if (!is_array($ot_features)) {
+        $ot_features = [];
+    }
+
     $defaults = get_post_meta($collection->ID, '_fr_collection_defaults', true);
     if (!is_array($defaults)) {
         $defaults = [
             'text' => 'Hamburgefontsiv',
-            'font_size' => '48px',
-            'line_height' => '1.1',
+            'font_size' => '128px',
+            'line_height' => '1.2',
             'alignment' => 'left',
         ];
     }
@@ -51,11 +52,10 @@ function wpfv_render_viewer($atts) {
 
     ob_start();
     ?>
-
     <div class="fr-font-viewer"
-         data-fonts='<?php echo esc_attr(json_encode(array_values($fonts))); ?>'
          data-default-font="<?php echo esc_attr($default_font); ?>"
-         data-ajax-url="<?php echo esc_url($ajax_url); ?>">
+         data-ajax-url="<?php echo esc_url($ajax_url); ?>"
+         data-ot-features='<?php echo esc_attr(json_encode(array_values($ot_features))); ?>'>
 
         <div class="fr-controls">
 
@@ -65,9 +65,7 @@ function wpfv_render_viewer($atts) {
                     <?php foreach ($fonts as $file): ?>
                         <option value="<?php echo esc_attr($file); ?>"
                             <?php selected($file, $default_font); ?>>
-                            <?php echo esc_html(
-                                trim(str_replace(['-', '.woff2'], [' ', ''], $file))
-                            ); ?>
+                            <?php echo esc_html(pathinfo($file, PATHINFO_FILENAME)); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -82,36 +80,21 @@ function wpfv_render_viewer($atts) {
 
             <!-- Font size -->
             <div class="fr-control fr-size">
-                <input
-                    type="range"
-                    class="fr-font-size"
-                    min="8"
-                    max="200"
-                    value="<?php echo intval($defaults['font_size']); ?>"
-                >
+                <input type="range" class="fr-font-size" min="8" max="200"
+                       value="<?php echo intval($defaults['font_size']); ?>">
             </div>
 
             <!-- Line height -->
             <div class="fr-control fr-lineheight">
-                <input
-                    type="range"
-                    class="fr-line-height"
-                    min="0.6"
-                    max="2"
-                    step="0.05"
-                    value="<?php echo esc_attr($defaults['line_height']); ?>"
-                >
+                <input type="range" class="fr-line-height"
+                       min="0.6" max="2" step="0.05"
+                       value="<?php echo esc_attr($defaults['line_height']); ?>">
             </div>
 
-            <!-- OpenType features (placeholder) -->
+            <!-- OpenType -->
             <div class="fr-control fr-ot">
-                <button type="button" class="fr-ot-toggle">
-                    OpenType
-                </button>
-
-                <div class="fr-ot-panel" hidden>
-                    <!-- JS will populate this -->
-                </div>
+                <button type="button" class="fr-ot-toggle">OpenType</button>
+                <div class="fr-ot-panel" hidden></div>
             </div>
 
         </div>
@@ -127,33 +110,25 @@ function wpfv_render_viewer($atts) {
            ">
             <?php echo esc_html($defaults['text']); ?>
         </p>
-
     </div>
-
     <?php
     return ob_get_clean();
 }
 
 function fr_ot_features_to_css($features) {
-    if (empty($features)) return '';
-    $out = [];
-    foreach ($features as $tag) {
-        $out[] = '"' . esc_attr($tag) . '" 1';
-    }
-    return implode(', ', $out);
+    if (empty($features)) return 'normal';
+    return implode(', ', array_map(fn($f) => "\"$f\" 1", $features));
 }
 
 /**
- * Serve WOFF2 fonts securely
+ * Serve WOFF2 fonts
  */
 add_action('wp_ajax_wpfv_font', 'wpfv_serve_font');
 add_action('wp_ajax_nopriv_wpfv_font', 'wpfv_serve_font');
 
 function wpfv_serve_font() {
 
-    if (ob_get_length()) {
-        ob_end_clean();
-    }
+    if (ob_get_length()) ob_end_clean();
 
     $file = sanitize_file_name($_GET['file'] ?? '');
     if (!$file) {
@@ -161,9 +136,7 @@ function wpfv_serve_font() {
         exit;
     }
 
-    $plugin_root = dirname(__DIR__);
-    $path = $plugin_root . '/storage/' . $file;
-
+    $path = dirname(__DIR__) . '/storage/' . $file;
     if (!file_exists($path)) {
         status_header(404);
         exit;
@@ -179,133 +152,89 @@ function wpfv_serve_font() {
     exit;
 }
 
+/**
+ * Frontend JS
+ */
 add_action('wp_footer', function () {
 ?>
 <script>
 (function () {
+
+    const OT_FEATURES = [
+        { tag: 'kern', label: 'Kerning' },
+        { tag: 'liga', label: 'Standard Ligatures' },
+        { tag: 'calt', label: 'Contextual Alternates' },
+        { tag: 'clig', label: 'Contextual Ligatures' },
+        { tag: 'dlig', label: 'Discretionary Ligatures' },
+        { tag: 'smcp', label: 'Small Caps' },
+        { tag: 'case', label: 'Case Sensitive Forms' },
+        { tag: 'salt', label: 'Stylistic Alternates' },
+        { tag: 'onum', label: 'Oldstyle Numerals' },
+        { tag: 'lnum', label: 'Lining Numerals' },
+        { tag: 'ss01', label: 'Stylistic Set 01' },
+        { tag: 'ss02', label: 'Stylistic Set 02' }
+    ];
 
     function loadFont(file, ajaxUrl) {
         if (document.querySelector('style[data-font="' + file + '"]')) return;
 
         const family = 'fr-font-' + file.replace(/[^a-z0-9]/gi, '');
         const style = document.createElement('style');
-        style.setAttribute('data-font', file);
+        style.dataset.font = file;
         style.textContent =
-            "@font-face{" +
-            "font-family:'" + family + "';" +
-            "src:url('" + ajaxUrl + "?action=wpfv_font&file=" + encodeURIComponent(file) + "') format('woff2');" +
-            "font-display:swap;" +
-            "}";
+            "@font-face{font-family:'" + family +
+            "';src:url('" + ajaxUrl +
+            "?action=wpfv_font&file=" + encodeURIComponent(file) +
+            "') format('woff2');font-display:swap;}";
 
         document.head.appendChild(style);
     }
 
-    document.querySelectorAll('.fr-font-viewer').forEach(function (viewer) {
+    document.querySelectorAll('.fr-font-viewer').forEach(viewer => {
 
         const stage   = viewer.querySelector('.fr-font-stage');
         const select  = viewer.querySelector('.fr-font-select');
         const ajaxUrl = viewer.dataset.ajaxUrl;
         const defaultFont = viewer.dataset.defaultFont;
 
-        function applyFont(file) {
-            loadFont(file, ajaxUrl);
-            const family = 'fr-font-' + file.replace(/[^a-z0-9]/gi, '');
-            stage.style.fontFamily = family;
+        const otToggle = viewer.querySelector('.fr-ot-toggle');
+        const otPanel  = viewer.querySelector('.fr-ot-panel');
+
+        const activeOT = JSON.parse(viewer.dataset.otFeatures || '[]');
+
+        // Build OT UI
+        otPanel.innerHTML = '';
+        OT_FEATURES.forEach(f => {
+            const label = document.createElement('label');
+            label.innerHTML =
+                `<input type="checkbox" data-feature="${f.tag}"
+                ${activeOT.includes(f.tag) ? 'checked' : ''}> ${f.label}`;
+            otPanel.appendChild(label);
+        });
+
+        function applyOT() {
+            const active = [];
+            otPanel.querySelectorAll('input:checked').forEach(cb => {
+                active.push(`"${cb.dataset.feature}" 1`);
+            });
+            stage.style.fontFeatureSettings = active.length ? active.join(', ') : 'normal';
         }
 
-        // Initial font
-        applyFont(defaultFont);
+        applyOT();
 
-        // Change font
-        select.addEventListener('change', function () {
-            applyFont(this.value);
-        });
+        otPanel.addEventListener('change', applyOT);
+        otToggle.addEventListener('click', () => otPanel.hidden = !otPanel.hidden);
+
+        function applyFont(file) {
+            loadFont(file, ajaxUrl);
+            stage.style.fontFamily = 'fr-font-' + file.replace(/[^a-z0-9]/gi, '');
+        }
+
+        applyFont(defaultFont);
+        select.addEventListener('change', e => applyFont(e.target.value));
     });
 
 })();
-
-// Alignment of Paragraph
-document.addEventListener('click', function (e) {
-
-    if (!e.target.matches('.fr-alignment button')) return;
-
-    const viewer = e.target.closest('.fr-font-viewer');
-    const stage  = viewer.querySelector('.fr-font-stage');
-    const align  = e.target.dataset.align;
-
-    stage.style.textAlign = align;
-
-    // active state
-    viewer.querySelectorAll('.fr-alignment button').forEach(btn => {
-        btn.classList.toggle('is-active', btn === e.target);
-    });
-});
-
-// Font-size Slider
-document.addEventListener('input', function (e) {
-
-    if (!e.target.matches('.fr-font-size')) return;
-
-    const viewer = e.target.closest('.fr-font-viewer');
-    const stage  = viewer.querySelector('.fr-font-stage');
-
-    stage.style.fontSize = e.target.value + 'px';
-});
-
-// Line-height Slider
-document.addEventListener('input', function (e) {
-
-    if (!e.target.matches('.fr-line-height')) return;
-
-    const viewer = e.target.closest('.fr-font-viewer');
-    const stage  = viewer.querySelector('.fr-font-stage');
-
-    stage.style.lineHeight = e.target.value;
-});
-
-// Populating the OT-menu
-const otFeatures = [
-  { tag: "liga", label: "Standard Ligatures" },
-  { tag: "dlig", label: "Discretionary Ligatures" },
-  { tag: "clig", label: "Contextual Ligatures" },
-  { tag: "kern", label: "Kerning" },
-  { tag: "ss01", label: "Stylistic Set 1" },
-  { tag: "ss02", label: "Stylistic Set 2" },
-  { tag: "salt", label: "Stylistic Alternates" },
-  { tag: "onum", label: "Oldstyle Numerals" },
-  { tag: "lnum", label: "Lining Numerals" }
-];
-
-const otPanel = document.querySelector('.fr-ot-panel');
-const stage = document.querySelector('.fr-font-stage');
-
-otFeatures.forEach(f => {
-  const label = document.createElement('label');
-  label.innerHTML = `
-    <input type="checkbox" data-feature="${f.tag}">
-    ${f.label}
-  `;
-  otPanel.appendChild(label);
-});
-
-// Toggle the OT-menu
-document.querySelector('.fr-ot-toggle')
-  .addEventListener('click', () => {
-    otPanel.hidden = !otPanel.hidden;
-    });
-
-  // Apply OT features to the paragraph
-  otPanel.addEventListener('change', () => {
-  const active = [];
-
-  otPanel.querySelectorAll('input:checked')
-    .forEach(cb => {
-      active.push(`"${cb.dataset.feature}" 1`);
-    });
-
-  stage.style.fontFeatureSettings =
-    active.length ? active.join(', ') : 'normal';
-});
 </script>
 <?php
 });

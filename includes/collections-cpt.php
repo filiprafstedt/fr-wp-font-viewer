@@ -77,6 +77,7 @@ function fr_collection_ot_features_box($post) {
         ['tag' => 'swsh', 'name' => 'Swashes'],
         ['tag' => 'cswh', 'name' => 'Contextual Swashes'],
         ['tag' => 'smcp', 'name' => 'Small Caps'],
+        ['tag' => 'case', 'name' => 'Case Sensitive Forms'],
         ['tag' => 'onum', 'name' => 'Oldstyle Figures'],
         ['tag' => 'lnum', 'name' => 'Lining Figures'],
         ['tag' => 'pnum', 'name' => 'Proportional Figures'],
