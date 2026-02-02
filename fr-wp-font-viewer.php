@@ -18,3 +18,21 @@ require_once WPFV_PATH . 'includes/fonts-cpt.php';
 require_once WPFV_PATH . 'includes/collections-cpt.php';
 require_once WPFV_PATH . 'includes/shortcode.php';
 
+add_action('wp_enqueue_scripts', function () {
+
+    wp_enqueue_script(
+        'fr-font-viewer-ui',
+        plugins_url('assets/js/font-viewer-ui.js', __FILE__),
+        [],
+        '1.0',
+        true
+    );
+
+    wp_enqueue_style(
+        'fr-font-viewer-ui',
+        plugins_url('assets/css/font-viewer-ui.css', __FILE__),
+        [],
+        '1.0'
+    );
+
+});
