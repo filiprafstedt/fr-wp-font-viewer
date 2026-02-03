@@ -72,10 +72,38 @@ function wpfv_render_viewer($atts) {
             </div>
 
             <!-- Alignment -->
+            <!--
             <div class="fr-control fr-alignment">
                 <button type="button" data-align="left">L</button>
                 <button type="button" data-align="center">C</button>
                 <button type="button" data-align="right">R</button>
+            </div>
+            -->
+
+            <div class="fr-control fr-alignment">
+                <button type="button" data-align="left" aria-label="Align left">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="3" width="16" height="3"/>
+                        <rect x="3" y="10" width="24" height="3"/>
+                        <rect x="3" y="17" width="14" height="3"/>
+                    </svg>
+                </button>
+
+                <button type="button" data-align="center" aria-label="Align center">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="5" y="5" width="14" height="2"/>
+                        <rect x="3" y="10" width="18" height="2"/>
+                        <rect x="5" y="15" width="14" height="2"/>
+                    </svg>
+                </button>
+
+                <button type="button" data-align="right" aria-label="Align right">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="7" y="5" width="14" height="2"/>
+                        <rect x="3" y="10" width="18" height="2"/>
+                        <rect x="7" y="15" width="14" height="2"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Font size -->

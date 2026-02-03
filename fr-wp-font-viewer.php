@@ -17,6 +17,7 @@ define('WPFV_URL', plugin_dir_url(__FILE__));
 require_once WPFV_PATH . 'includes/fonts-cpt.php';
 require_once WPFV_PATH . 'includes/collections-cpt.php';
 require_once WPFV_PATH . 'includes/shortcode.php';
+require_once WPFV_PATH . 'includes/settings.php';
 
 add_action('wp_enqueue_scripts', function () {
 
@@ -36,3 +37,30 @@ add_action('wp_enqueue_scripts', function () {
     );
 
 });
+
+// --------------------------------------------------
+// Foundry top-level admin menu
+// --------------------------------------------------
+
+add_action('admin_menu', function () {
+
+    add_menu_page(
+        'Foundry',                 // Page title
+        'Foundry',                 // Menu title
+        'manage_options',          // Capability
+        'fr-foundry',              // Menu slug
+        'fr_render_foundry_home',  // Callback
+        'dashicons-editor-textcolor',
+        25
+    );
+
+});
+
+function fr_render_foundry_home() {
+    ?>
+    <div class="wrap">
+        <h1>Foundry</h1>
+        <p>Welcome to the Foundry admin.</p>
+    </div>
+    <?php
+}

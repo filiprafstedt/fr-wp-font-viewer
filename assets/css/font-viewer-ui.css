@@ -57,6 +57,17 @@
     padding: 0.75rem 01rem;
     cursor: pointer;
     line-height: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* SVG inside button */
+.fr-alignment svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    color: #111;
 }
 
 .fr-alignment button:hover {
@@ -74,6 +85,10 @@
 
 .fr-alignment button.is-active {
     background: #111;
+    color: white;
+}
+
+.fr-alignment button.is-active svg {
     color: white;
 }
 
