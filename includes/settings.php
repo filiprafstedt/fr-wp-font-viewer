@@ -55,10 +55,11 @@ function fr_render_foundry_settings() {
                 </table>
 
                 <p>
-                    <button class="button button-primary" id="fr-add-feature">
-                        Add Feature
-                    </button>
+                    <button class="button" id="fr-add-feature">Add Feature</button>
+                    <button class="button button-primary" id="fr-save-features">Save Features</button>
                 </p>
+
+                <?php wp_nonce_field('fr_save_font_features', 'fr_font_features_nonce'); ?>
             </div>
         </div>
     </div>
@@ -127,6 +128,15 @@ add_action('admin_enqueue_scripts', function ($hook) {
         true
     );
 
+    wp_localize_script(
+    'fr-font-features',
+    'FRFontFeatures',
+    [
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'nonce'    => wp_create_nonce('fr_save_font_features'),
+    ]
+);
+
     // Optional: CSS tweaks for the table
     wp_enqueue_style(
         'fr-font-features-css',
@@ -134,4 +144,41 @@ add_action('admin_enqueue_scripts', function ($hook) {
         [],
         '1.0'
     );
+});
+
+// --------------------------------------------------
+// AJAX: Save Font Features
+// --------------------------------------------------
+
+add_action('wp_ajax_fr_save_font_features', function () {
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Permission denied');
+    }
+
+    if (
+        empty($_POST['nonce']) ||
+        !wp_verify_nonce($_POST['nonce'], 'fr_save_font_features')
+    ) {
+        wp_send_json_error('Invalid nonce');
+    }
+
+    $features = $_POST['features'] ?? [];
+
+    $clean = [];
+
+    foreach ($features as $feature) {
+        if (empty($feature['tag']) || empty($feature['name'])) {
+            continue;
+        }
+
+        $clean[] = [
+            'tag'  => sanitize_key($feature['tag']),
+            'name' => sanitize_text_field($feature['name']),
+        ];
+    }
+
+    update_option('fr_wpfv_font_features', $clean);
+
+    wp_send_json_success();
 });
