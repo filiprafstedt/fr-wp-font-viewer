@@ -64,46 +64,61 @@ add_action('add_meta_boxes', function () {
 
 function fr_collection_ot_features_box($post) {
 
-    wp_nonce_field('fr_collection_ot_features', 'fr_collection_ot_features_nonce');
+    $global_features = get_option('fr_wpfv_font_features', []);
+    $collection_features = get_post_meta(
+        $post->ID,
+        'fr_wpfv_collection_features',
+        true
+    );
 
-    // Default feature list (static for now)
-    $features = [
-        ['tag' => 'kern', 'name' => 'Kerning'],
-        ['tag' => 'calt', 'name' => 'Contextual Alternates'],
-        ['tag' => 'clig', 'name' => 'Contextual Ligatures'],
-        ['tag' => 'salt', 'name' => 'Stylistic alternates'],
-        ['tag' => 'liga', 'name' => 'Standard Ligatures'],
-        ['tag' => 'dlig', 'name' => 'Discretionary Ligatures'],
-        ['tag' => 'swsh', 'name' => 'Swashes'],
-        ['tag' => 'cswh', 'name' => 'Contextual Swashes'],
-        ['tag' => 'smcp', 'name' => 'Small Caps'],
-        ['tag' => 'case', 'name' => 'Case Sensitive Forms'],
-        ['tag' => 'onum', 'name' => 'Oldstyle Figures'],
-        ['tag' => 'lnum', 'name' => 'Lining Figures'],
-        ['tag' => 'pnum', 'name' => 'Proportional Figures'],
-        ['tag' => 'tnum', 'name' => 'Tabular Figures'],
-    ];
+    if (!is_array($collection_features)) {
+        $collection_features = [];
+    }
 
-    $enabled = get_post_meta($post->ID, '_fr_collection_ot_features', true);
-    if (!is_array($enabled)) {
-        $enabled = [];
+    wp_nonce_field(
+        'fr_save_collection_features',
+        'fr_collection_features_nonce'
+    );
+
+    if (empty($global_features)) {
+        echo '<p><em>No global features defined yet.</em></p>';
+        return;
     }
 
     echo '<table class="widefat striped">';
     echo '<thead>
             <tr>
-                <th style="width:60px;">Active</th>
-                <th style="width:80px;">Tag</th>
-                <th>Name</th>
+                <th>Feature</th>
+                <th style="width:120px;">Enabled</th>
+                <th style="width:160px;">Show in Preview</th>
             </tr>
           </thead><tbody>';
 
-    foreach ($features as $feature) {
-        $checked = in_array($feature['tag'], $enabled, true);
+    foreach ($global_features as $feature) {
+
+        $tag = $feature['tag'];
+
+        $enabled = $collection_features[$tag]['enabled'] ?? true;
+        $preview = $collection_features[$tag]['preview'] ?? true;
+
         echo '<tr>';
-        echo '<td><input type="checkbox" name="fr_ot_features[]" value="' . esc_attr($feature['tag']) . '" ' . checked($checked, true, false) . '></td>';
-        echo '<td><code>' . esc_html($feature['tag']) . '</code></td>';
-        echo '<td>' . esc_html($feature['name']) . '</td>';
+        echo '<td>';
+        echo '<strong>' . esc_html($feature['name']) . '</strong><br>';
+        echo '<code>' . esc_html($tag) . '</code>';
+        echo '</td>';
+
+        echo '<td>';
+        echo '<input type="checkbox"
+            name="fr_collection_features[' . esc_attr($tag) . '][enabled]"
+            ' . checked($enabled, true, false) . '>';
+        echo '</td>';
+
+        echo '<td>';
+        echo '<input type="checkbox"
+            name="fr_collection_features[' . esc_attr($tag) . '][preview]"
+            ' . checked($preview, true, false) . '>';
+        echo '</td>';
+
         echo '</tr>';
     }
 
@@ -280,15 +295,28 @@ add_action('save_post_wpfv_collection', function ($post_id) {
     if (!current_user_can('edit_post', $post_id)) return;
 
     if (
-        !isset($_POST['fr_collection_ot_features_nonce']) ||
-        !wp_verify_nonce($_POST['fr_collection_ot_features_nonce'], 'fr_collection_ot_features')
+        !isset($_POST['fr_collection_features_nonce']) ||
+        !wp_verify_nonce(
+            $_POST['fr_collection_features_nonce'],
+            'fr_save_collection_features'
+        )
     ) {
         return;
     }
 
-    $features = isset($_POST['fr_ot_features'])
-        ? array_map('sanitize_text_field', $_POST['fr_ot_features'])
-        : [];
+    $input = $_POST['fr_collection_features'] ?? [];
+    $clean = [];
 
-    update_post_meta($post_id, '_fr_collection_ot_features', $features);
+    foreach ($input as $tag => $values) {
+        $clean[sanitize_key($tag)] = [
+            'enabled' => isset($values['enabled']),
+            'preview' => isset($values['preview']),
+        ];
+    }
+
+    update_post_meta(
+        $post_id,
+        'fr_wpfv_collection_features',
+        $clean
+    );
 });
