@@ -1,9 +1,97 @@
+// -----------------------------
+// FR Font Viewer JS
+// -----------------------------
+
+function sanitizeFontFamily(file) {
+    // Convert spaces to dashes and remove unwanted characters
+    return 'fr-font-' + file.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '');
+}
+
+function buildFeatureSettings(features) {
+    return features
+        .map(f => `"${f.tag}" ${f.enabled ? 1 : 0}`)
+        .join(', ');
+}
+
+function applyFontFeatures(stage, features) {
+    const css = buildFeatureSettings(features);
+    stage.style.fontFeatureSettings = css || 'normal';
+}
+
+function updateFeaturesFromUI(panel, stage) {
+    const features = [];
+    panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        features.push({
+            tag: cb.dataset.tag,
+            enabled: cb.checked
+        });
+    });
+    applyFontFeatures(stage, features);
+}
+
+function renderFeatureCheckboxes(container, features, stage, toggleBtn) {
+    const panel = document.createElement('div');
+    panel.className = 'fr-ot-panel';
+    panel.hidden = true;
+
+    features.forEach(feature => {
+        if (!feature.enabled) return;
+
+        const label = document.createElement('label');
+        label.className = 'fr-ot-item';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.dataset.tag = feature.tag;
+
+        checkbox.addEventListener('change', () => {
+            updateFeaturesFromUI(panel, stage);
+        });
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(' ' + feature.name));
+        panel.appendChild(label);
+    });
+
+    container.appendChild(panel);
+
+    // Toggle button wiring
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            panel.hidden = !panel.hidden;
+        });
+    }
+
+    // Initial apply
+    updateFeaturesFromUI(panel, stage);
+}
+
+function renderFeatureDropdown(container) {
+    if (!window.FRFontViewer?.features?.length) return;
+
+    const select = document.createElement('select');
+    select.className = 'fr-feature-select';
+
+    FRFontViewer.features.forEach(feature => {
+        const option = document.createElement('option');
+        option.value = feature.tag;
+        option.textContent = feature.name;
+        option.dataset.enabled = feature.enabled ? '1' : '0';
+        select.appendChild(option);
+    });
+
+    container.appendChild(select);
+    return select;
+}
+
 (function () {
 
     function loadFont(file, ajaxUrl) {
         if (document.querySelector('style[data-font="' + file + '"]')) return;
 
-        const family = 'fr-font-' + file.replace(/[^a-z0-9]/gi, '');
+        const family = sanitizeFontFamily(file);
+
         const style = document.createElement('style');
         style.setAttribute('data-font', file);
         style.textContent =
@@ -16,24 +104,10 @@
         document.head.appendChild(style);
     }
 
-    const OT_FEATURES = [
-        { tag: 'kern', label: 'Kerning' },
-        { tag: 'liga', label: 'Standard Ligatures' },
-        { tag: 'dlig', label: 'Discretionary Ligatures' },
-        { tag: 'clig', label: 'Contextual Ligatures' },
-        { tag: 'calt', label: 'Contextual Alternates' },
-        { tag: 'smcp', label: 'Small Caps' },
-        { tag: 'case', label: 'Case Sensitive Forms' },
-        { tag: 'onum', label: 'Oldstyle Numerals' },
-        { tag: 'lnum', label: 'Lining Numerals' },
-        { tag: 'ss01', label: 'Stylistic Set 01' },
-        { tag: 'ss02', label: 'Stylistic Set 02' }
-    ];
-
     document.addEventListener('DOMContentLoaded', function () {
-
         document.querySelectorAll('.fr-font-viewer').forEach(function (viewer) {
 
+            const features = JSON.parse(viewer.dataset.features || '[]');
             const stage   = viewer.querySelector('.fr-font-stage');
             const select  = viewer.querySelector('.fr-font-select');
             const ajaxUrl = viewer.dataset.ajaxUrl;
@@ -44,12 +118,43 @@
             -------------------------- */
             function applyFont(file) {
                 loadFont(file, ajaxUrl);
-                const family = 'fr-font-' + file.replace(/[^a-z0-9]/gi, '');
+                const family = sanitizeFontFamily(file);
                 stage.style.fontFamily = family;
             }
 
+            // Apply default font immediately
             applyFont(defaultFont);
 
+            /* -------------------------
+               OpenType Features
+            -------------------------- */
+            const controls = viewer.querySelector('.fr-controls');
+            if (controls && window.FRFontViewer?.features?.length) {
+                const otToggle = viewer.querySelector('.fr-ot-toggle');
+
+                // Checkbox panel
+                renderFeatureCheckboxes(controls, FRFontViewer.features, stage, otToggle);
+
+                // Dropdown (optional alternative)
+                const dropdown = renderFeatureDropdown(controls);
+                if (dropdown) {
+                    dropdown.addEventListener('change', () => {
+                        const selected = dropdown.value;
+                        const updated = FRFontViewer.features.map(f => ({
+                            ...f,
+                            enabled: f.tag === selected
+                        }));
+                        applyFontFeatures(stage, updated);
+                    });
+                }
+
+                // Apply initial features
+                applyFontFeatures(stage, FRFontViewer.features);
+            }
+
+            /* -------------------------
+               Font selector
+            -------------------------- */
             select.addEventListener('change', function () {
                 applyFont(this.value);
             });
@@ -60,7 +165,6 @@
             viewer.querySelectorAll('.fr-alignment button').forEach(btn => {
                 btn.addEventListener('click', () => {
                     stage.style.textAlign = btn.dataset.align;
-
                     viewer.querySelectorAll('.fr-alignment button')
                         .forEach(b => b.classList.toggle('is-active', b === btn));
                 });
@@ -82,47 +186,7 @@
                     stage.style.lineHeight = e.target.value;
                 });
 
-            /* -------------------------
-               OpenType features
-            -------------------------- */
-            const otToggle = viewer.querySelector('.fr-ot-toggle');
-            const otPanel  = viewer.querySelector('.fr-ot-panel');
-            const activeOT = JSON.parse(viewer.dataset.otFeatures || '[]');
-
-            otPanel.innerHTML = '';
-
-            OT_FEATURES.forEach(feature => {
-                const label = document.createElement('label');
-                label.className = 'fr-ot-item';
-
-                const checked = activeOT.includes(feature.tag) ? 'checked' : '';
-
-                label.innerHTML =
-                    `<input type="checkbox" data-feature="${feature.tag}" ${checked}>
-                     ${feature.label}`;
-
-                otPanel.appendChild(label);
-            });
-
-            function syncOT() {
-                const active = [];
-                otPanel.querySelectorAll('input:checked').forEach(cb => {
-                    active.push(`"${cb.dataset.feature}" 1`);
-                });
-                stage.style.fontFeatureSettings =
-                    active.length ? active.join(', ') : 'normal';
-            }
-
-            syncOT();
-
-            otPanel.addEventListener('change', syncOT);
-
-            otToggle.addEventListener('click', () => {
-                otPanel.hidden = !otPanel.hidden;
-            });
-
         });
-
     });
 
 })();

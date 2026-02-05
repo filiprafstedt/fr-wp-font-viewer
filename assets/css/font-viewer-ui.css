@@ -23,6 +23,7 @@
     gap: var(--fr-ui-gap);
     margin-bottom: 2rem;
     background: var(--fr-ui-bg);
+    position: relative;
 }
 
 /* Each control is inline-flex */
@@ -116,8 +117,8 @@
 /* Panel */
 .fr-ot-panel {
     position: absolute;
-    top: 100%;
-    right: 0;
+    top: 0%;
+    left: 0;
     margin-top: 0.4rem;
     padding: 0.5rem 0.6rem;
     background: white;
@@ -138,6 +139,23 @@
 
 .fr-ot-item + .fr-ot-item {
     margin-top: 0.3rem;
+}
+
+.fr-ot-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-left: 8px;
+}
+
+.fr-ot-item {
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fr-control.fr-ot {
+    position: relative;  /* anchor the panel relative to the button */
 }
 
 /* -------------------------------------------------------*/

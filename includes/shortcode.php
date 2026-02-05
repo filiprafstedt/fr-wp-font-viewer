@@ -48,6 +48,45 @@ function wpfv_render_viewer($atts) {
         ];
     }
 
+    // Load collection features
+
+    $collection_features = get_post_meta(
+        $collection->ID,
+        'fr_wpfv_collection_features',
+        true
+    );
+
+    if (!is_array($collection_features)) {
+        $collection_features = [];
+    }
+
+    $global_features = get_option('fr_wpfv_font_features', []);
+
+    // Build preview-visible feature list
+
+    $preview_features = [];
+
+    foreach ($global_features as $feature) {
+        $tag = $feature['tag'];
+
+        $settings = $collection_features[$tag] ?? [
+            'enabled' => true,
+            'preview' => true,
+        ];
+
+        if (!$settings['preview']) {
+            continue;
+        }
+
+        $preview_features[] = [
+            'tag'     => $tag,
+            'name'    => $feature['name'],
+            'enabled' => $settings['enabled'],
+        ];
+    }
+
+    // -------------------
+
     $ajax_url = admin_url('admin-ajax.php');
 
     ob_start();
@@ -55,7 +94,7 @@ function wpfv_render_viewer($atts) {
     <div class="fr-font-viewer"
          data-default-font="<?php echo esc_attr($default_font); ?>"
          data-ajax-url="<?php echo esc_url($ajax_url); ?>"
-         data-ot-features='<?php echo esc_attr(json_encode(array_values($ot_features))); ?>'>
+         data-features='<?php echo esc_attr(json_encode($preview_features)); ?>'>
 
         <div class="fr-controls">
 
@@ -140,11 +179,12 @@ function wpfv_render_viewer($atts) {
         </p>
     </div>
     <?php
+
     return ob_get_clean();
+
 }
 
 function fr_ot_features_to_css($features) {
     if (empty($features)) return 'normal';
     return implode(', ', array_map(fn($f) => "\"$f\" 1", $features));
 }
-
